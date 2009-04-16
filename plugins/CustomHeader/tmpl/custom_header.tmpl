@@ -1,0 +1,313 @@
+<mt:setvar name="page_title" value="<__trans phrase="Custom Header">">
+<mt:setvar name="position_actions_bottom" value="1">
+<mt:setvarblock name="header_url"><mt:CustomHeaderAsset><mt:AssetURL></mt:CustomHeaderAsset></mt:setvarblock>
+<mt:setvarblock name="html_head" append="1">
+
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/fileupload/jquery.js"></script>
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/fileupload/fileupload.js"></script>
+
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/ui.core.js"></script>
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/ui.dialog.js"></script>
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/ui.resizable.js"></script>
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/ui.draggable.js"></script>
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/jquery.dimensions.js"></script>
+<script src="<mt:StaticWebPath>plugins/CustomHeader/js/jquery.Jcrop.js"></script>
+
+<link rel="stylesheet" href="<mt:StaticWebPath>plugins/CustomHeader/css/flora.dialog.css" type="text/css">
+<link rel="stylesheet" href="<mt:StaticWebPath>plugins/CustomHeader/css/jquery.Jcrop.css" type="text/css">
+
+<script type="text/javascript">
+  var coords;
+  var current_asset_id;
+  var original = Array();
+<mt:CustomHeaderAsset>
+  current_asset_id = <mt:AssetID>;
+<mt:AssetParent>
+  original.id     = '<mt:AssetID>';
+  original.url    = '<mt:AssetURL>';
+  original.width  = '<mt:AssetProperty property="image_width">';
+  original.height = '<mt:AssetProperty property="image_height">';
+</mt:AssetParent>
+</mt:CustomHeaderAsset>
+
+  function setCoords(c) { coords = c; }
+  function cropImage(e) {
+     if (!coords) { return; }
+     $.post("<mt:AdminCGIPath><mt:AdminScript>", { 
+          '__mode': "custom_header_crop",
+          'blog_id':"<mt:var name="blog_id">",
+          'id':current_asset_id,
+          'x':coords.x,
+          'y':coords.y,
+          'w':coords.w,
+          'h':coords.h,
+          'magic_token':'<mt:var name="magic_token">'
+      },
+      function(data){
+          $('#headimg').css('backgroundImage','url(' + data.cropped_url + ')' );
+          $('#headimg').css('width','<mt:CustomHeaderMaxWidth>px');
+          $('#headimg').css('height','<mt:CustomHeaderMaxHeight>px');
+          $("#resizeDialog").dialog("close");
+	  $('#no-header').hide();
+	  $('#header-actions').show();
+      }, 
+      "json"
+    );
+    return true;
+  }
+  function reCrop() {
+    showResizeDialog( original.id, original.url, original.width, original.height );
+  }
+  function reset() {
+    $('#resetDialog').dialog('option', 'buttons', { 
+      'Reset':function(e) {
+        $.post("<mt:AdminCGIPath><mt:AdminScript>", { 
+            '__mode': "custom_header_reset",
+            'blog_id':"<mt:var name="blog_id">",
+            'magic_token':'<mt:var name="magic_token">'
+          },
+          function(data){
+            $('#headimg').css('backgroundImage','' );
+            $('#headimg').css('width','0px');
+            $('#headimg').css('height','0px');
+            $('#no-header').show();
+            $('#header-actions').hide();
+            return true;
+          }, 
+          "json");
+        $("#resetDialog").dialog("close");
+      },
+      'Cancel':function() { 
+        $("#resetDialog").dialog("close"); 
+      } 
+    });
+    $("#resetDialog").dialog("open");
+  }
+  function showResizeDialog( id, url, w, h ) {
+    $('#resizeDialog').dialog('option', 'buttons', { 
+      'Crop':cropImage,
+      'Cancel':function() { 
+        $("#resizeDialog").dialog("close"); 
+      } 
+    });
+    $('#resizeMeImg').attr('src', url);
+    $('#resizeMeImg').Jcrop({
+      aspectRatio: ( <mt:CustomHeaderMaxWidth> / <mt:CustomHeaderMaxHeight> ),
+      boxWidth: 640,
+      boxHeight: 480,
+      trueSize: [ w, h ],
+      onSelect: setCoords,
+    });
+    $('#resizeMe').width( w + 'px' );
+    $('#resizeMe').height( h + 'px' );
+    $('#resizeMe').show();
+    $('#resizeDialog').dialog('open');
+    return true;
+  }
+
+  function processUploadResponse(data) {
+    if (typeof(data.status) != 'undefined') {
+      if (data.status == 0) { // error
+        showErrorDialog(data.message);
+      } else if (data.status == '1') { // success
+        original.id      = data.asset.id;
+        original.url     = data.asset.url;
+        original.width   = data.asset.width;
+        original.height  = data.asset.height;
+        current_asset_id = data.asset.id;
+        showResizeDialog(data.asset.id, data.asset.url, data.asset.width, data.asset.height);
+      } else if (data.status == '2') { // need to overwrite existing file
+        promptForOverwrite(data);
+      } else {
+        showErrorDialog("An unknown status was received indicated that the Custom Header plugin encountered a critical error.");
+      }
+    }
+    return true;
+  }
+
+  function promptForOverwrite(data) {
+    $('#overwriteDialog').dialog('option', 'buttons', { 
+      'Overwrite':function(e) {
+        $.post("<mt:AdminCGIPath><mt:AdminScript>", { 
+            '__mode': "custom_header_upload",
+            'blog_id':"<mt:var name="blog_id">",
+            'temp':data.temp,
+            'fname':data.fname,
+            'extra_path':'',//data.extra_path,
+            'site_path':'',//data.site_path,
+            'middle_path':'',//data.middle_path,
+            'magic_token':'<mt:var name="magic_token">',
+            'overwrite_yes':'1'
+          },
+          function(data){
+            processUploadResponse(data);
+            return true;
+          }, 
+          "json");
+        $("#overwriteDialog").dialog("close");
+      },
+      'Cancel':function() { 
+        $("#overwriteDialog").dialog("close"); 
+      } 
+    });
+    $("#overwriteDialog").dialog("open");
+  }
+  function showErrorDialog(error) {
+    $('#errorDialog').html('<p>' + error + '</p>');
+    $('#errorDialog').dialog('option', 'buttons', { 
+      'OK':function() { 
+        $("#errorDialog").dialog("close"); 
+      } 
+    });
+    $("#errorDialog").dialog("open");
+  }
+  function ajaxFileUpload() {
+    var url = '<mt:AdminCGIPath><mt:AdminScript>';
+    url += '?__mode=custom_header_upload&blog_id=<mt:BlogID>&magic_token=<mt:var name="magic_token">';
+    $.ajaxFileUpload( {
+        url:url,
+        secureuri:false,
+        fileElementId:'file',
+        dataType:'json',
+        success: function (data, status) {
+          processUploadResponse(data);
+        },
+        error: function (data, status, e) {
+          showErrorDialog(e);
+        }
+    } )
+    return false;
+  }  
+
+  $(document).ready( function() {
+<mt:unless name="header_url">
+    $("#header-actions").hide();
+<mt:else>
+    $("#no-header").hide();
+</mt:unless>
+    $("#overwriteDialog").dialog({
+      modal: true,
+      position: ["center","center"],
+      width: 250,
+      height: 150,
+      dialogClass: "flora",
+      autoOpen: false,
+      overlay: { opacity: 0.5, background: "black" }
+    });
+    $("#resizeDialog").dialog({
+      modal: true,
+      width: 660,
+      height: 510,
+      dialogClass: "flora",
+      autoOpen: false,
+      overlay: { opacity: 0.5, background: "black" }
+    });
+    $("#resetDialog").dialog({
+      modal: true,
+      width: 250,
+      height: 150,
+      dialogClass: "flora",
+      autoOpen: false,
+      overlay: { opacity: 0.5, background: "black" }
+    });
+    $("#errorDialog").dialog({
+      modal: true,
+      width: 250,
+      height: 150,
+      dialogClass: "flora",
+      autoOpen: false,
+      overlay: { opacity: 0.5, background: "black" }
+    });
+  });
+</script>
+<style type="text/css">
+#headimg {
+  margin: 0px; padding: 0px;
+<mt:HasCustomHeader>
+  background-image: url(<mt:CustomHeaderAsset><mt:AssetURL></mt:CustomHeaderAsset>);
+</mt:HasCustomHeader>
+  background-position: bottom left;
+  background-repeat: no-repeat;
+  font-family: Arial, Helvetica, Sans-Serif;
+  <mt:if name="header_url">width: <mt:CustomHeaderMaxWidth>px; height: <mt:CustomHeaderMaxHeight>px;</mt:if>
+}
+</style>
+
+</mt:setvarblock>
+<mt:include name="include/header.tmpl">
+
+<h2>Current Header Image</h2>
+<div id="resizeDialog" class="flora" title="Crop Your Header">
+  <div id="resizeMe">
+    <img id="resizeMeImg" src="" />
+  </div>
+</div>
+
+<div id="overwriteDialog" class="flora" title="Overwrite image?">
+  <p>A file with that name has been previously uploaded. Do you want to overwrite that file?</p>
+</div>
+
+<div id="resetDialog" class="flora" title="Reset custom header?">
+  <p>Are you sure you want to delete your custom header and revert to the default?</p>
+</div>
+
+<div id="errorDialog" class="flora" title="Error"></div>
+
+<div id="headimg"></div>
+
+<p id="header-actions">
+  <a href="#" onclick="return reCrop();">Recrop</a> | <a href="#" onclick="return reset();">Reset to Default</a>
+</p>
+
+<mtapp:statusmsg
+   id="no-header"
+   can_close="0"
+   class="info">
+      <__trans phrase="A custom header has not yet been uploaded.">
+</mtapp:statusmsg>
+
+<h2>Upload New Header Image</h2>
+
+<p>Here you can upload a custom header image to be shown at the top of your blog instead of the default one. On the next screen you will be able to crop the image.</p>
+
+<img id="loading" src="<mt:StaticWebPath>plugins/CustomHeader/js/fileupload/loading.gif" style="display:none;">
+
+<form method="post" enctype="multipart/form-data" 
+    action="<mt:var name="script_url">">
+<input type="hidden" name="__mode" value="custom_header_upload" />
+<input type="hidden" name="blog_id" value="<mt:var name="blog_id">" />
+<input type="hidden" name="magic_token" value="<mt:var name="magic_token">" />
+<mtapp:setting
+    id="header-image"
+    label="Upload an Image"
+    show_label="1"
+    hint="Select an image from your local computer to upload. You will be able to crop it later."
+    show_hint="1"
+    content_class="field-content-text">
+    <input type="file" id="file" name="file" size="30" />
+</mtapp:setting>
+
+    <button
+        type="button"
+        accesskey="s"
+        title="Continue (s)"
+        onclick="return ajaxFileUpload();">Upload</button>
+
+<mt:ignore>
+<mt:setvarblock name="action_buttons">
+    <button
+        type="button"
+        accesskey="s"
+        title="Continue (s)"
+        onclick="return ajaxFileUpload();"
+        class="primary-button">Upload</button>
+</mt:setvarblock>
+<mt:include name="include/actions_bar.tmpl" bar_position="bottom" 
+    hide_pager="1" settings_bar="1">
+</mt:ignore>
+
+</form>
+
+<div id="container"></div>
+
+<mt:include name="include/footer.tmpl">
