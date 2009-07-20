@@ -26,13 +26,13 @@ sub init_request {
     if ($app->blog) {
         my $r = $app->registry('template_sets');
         my $ts = $app->blog->template_set;
-	if (my $hdr = $r->{$ts}->{'custom_header'}) {
-	    $plugin->{'registry'}->{'applications'}->{'cms'}->{'menus'}->{'design:header'} = { 
-		label => 'Custom Header',
-		order => 600,
-		mode => 'custom_header',
-	    };
-	}
+        if (my $hdr = $r->{$ts}->{'custom_header'}) {
+            $plugin->{'registry'}->{'applications'}->{'cms'}->{'menus'}->{'design:header'} = {
+            label => 'Custom Header',
+            order => 600,
+            mode => 'custom_header',
+            };
+        }
     }
     return 1;
 }
@@ -47,7 +47,7 @@ sub _crop_filename {
     my $asset   = shift;
     my (%param) = @_;
     my $file    = $asset->file_name or return;
-    
+
     require MT::Util;
     my $format = $param{Format} || MT->translate('%f-cropped-%X.%Y-%wx%h%x');
     my $width  = $param{Width}  || 'auto';
@@ -86,11 +86,11 @@ sub custom_header_crop {
 
     require MT::Asset;
     my $asset = MT::Asset->load( $id );
-    my $cropped = _crop_filename( $asset, 
-				  Width => max_width(),
-				  Height => max_height(),
-				  X => $X,
-				  Y => $Y,
+    my $cropped = _crop_filename( $asset,
+                  Width => max_width(),
+                  Height => max_height(),
+                  X => $X,
+                  Y => $Y,
     );
     my $cache_path; my $cache_url;
     my $archivepath = $blog->archive_path;
@@ -101,7 +101,7 @@ sub custom_header_crop {
     my $cropped_path = File::Spec->catfile( $cache_path, $cropped );
     my $cropped_url = $cache_url . '/' . $cropped;
     my ( $base, $path, $ext ) =
-	File::Basename::fileparse( $cropped, qr/[A-Za-z0-9]+$/ );
+    File::Basename::fileparse( $cropped, qr/[A-Za-z0-9]+$/ );
     my $asset_cropped = new MT::Asset::Image;
     $asset_cropped->blog_id($blog->id);
     $asset_cropped->url($cropped_url);
@@ -114,21 +114,21 @@ sub custom_header_crop {
     $asset_cropped->label($app->translate("Cropped header for [_1]", $asset->label || $asset->file_name));
     $asset_cropped->parent( $asset->id );
     $asset_cropped->save;
-    
+
     custom_header_id($asset_cropped->id);
-    
+
     require MT::Image;
     my $img = MT::Image->new( Filename => $asset->file_path )
-	or MT->log({message => "Error loading image: " . MT::Image->errstr });
-    my $data = _crop($img, 
-		     Width  => $width,
-		     Height => $height,
-		     X      => $X,
-		     Y      => $Y,
+        or MT->log({message => "Error loading image: " . MT::Image->errstr });
+    my $data = _crop($img,
+             Width  => $width,
+             Height => $height,
+             X      => $X,
+             Y      => $Y,
     );
-    $data = $img->scale( 
-	Width  => max_width(),
-	Height => max_height(),
+    $data = $img->scale(
+        Width  => max_width(),
+        Height => max_height(),
     );
 
     require MT::FileMgr;
@@ -144,13 +144,13 @@ sub custom_header_crop {
     }
 
     $fmgr->put_data( $data, $cropped_path, 'upload' )
-	or $error = MT->translate( "Error creating cropped file: [_1]", $fmgr->errstr );
+        or $error = MT->translate( "Error creating cropped file: [_1]", $fmgr->errstr );
 
     $result = {
-	error        => $error,
-	cropped      => $cropped,
-	cropped_path => $cropped_path,
-	cropped_url  => $cropped_url,
+        error        => $error,
+        cropped      => $cropped,
+        cropped_path => $cropped_path,
+        cropped_url  => $cropped_url,
     };
 
     return _send_json_response($app, $result);
@@ -172,17 +172,17 @@ sub _crop {
     my ($w, $h, $x, $y) = @param{qw( Width Height X Y )};
     my $magick = $image->{magick};
     my $err = $magick->Crop(
-	'width' => $w, 
-	'height' => $h, 
-	'x' => $x, 
-	'y' => $y,
-    );                                            
+        'width' => $w,
+        'height' => $h,
+        'x' => $x,
+        'y' => $y,
+    );
     return $image->error(
-	MT->translate(
-	    "Cropping a [_1]x[_2] image at [_3],[_4] failed: [_5]", 
-	    $w, $h, $x, $y, $err)) if $err;
+    MT->translate(
+        "Cropping a [_1]x[_2] image at [_3],[_4] failed: [_5]",
+        $w, $h, $x, $y, $err)) if $err;
 
-    ## Remove page offsets from the original image, per this thread: 
+    ## Remove page offsets from the original image, per this thread:
     ## http://studio.imagemagick.org/pipermail/magick-users/2003-September/010803.html
     $magick->Set( page => '+0+0' );
     ($image->{width}, $image->{height}) = ($w, $h);
@@ -196,17 +196,17 @@ sub custom_header_id {
     my $key = 'CustomHeader:' . $blog->id;
     my $data;
     $data = MT::PluginData->load({ plugin => 'CustomHeader',
-				   key    => $key });
+                   key    => $key });
     if (@_) {
-	if ($data && $_[0] == 0) {
-	    $data->remove or die $data->errstr;
-	} else {
-	    $data = MT::PluginData->new unless $data;
-	    $data->plugin('CustomHeader');
-	    $data->key($key);
-	    $data->data({ 'custom_header' => $_[0] });
-	    $data->save or die $data->errstr;
-	}
+        if ($data && $_[0] == 0) {
+            $data->remove or die $data->errstr;
+        } else {
+            $data = MT::PluginData->new unless $data;
+            $data->plugin('CustomHeader');
+            $data->key($key);
+            $data->data({ 'custom_header' => $_[0] });
+            $data->save or die $data->errstr;
+        }
     }
     return unless $data;
     return $data->data->{'custom_header'};
@@ -218,17 +218,17 @@ sub custom_header_upload {
         require_type => ('image'),
         @_,
     );
-    if ($result->{status} == SUCCESS() &&
-	($result->{asset}->{width} < max_width() ||
-	 $result->{asset}->{height} < max_height())) {
-	require MT::Asset;
-	my $a = MT::Asset->load($result->{asset}->{id});
-	$a->remove();
-	$result = {
-	    status => ERROR(),
-	    message => 'The image you uploaded is too small. Please make sure it is at least ' .
-	    max_width() . ' pixels wide and ' . max_height() . ' pixels high.',
-	};
+    if (    $result->{status} == SUCCESS()
+        &&  ($result->{asset}->{width} < max_width()
+        ||  $result->{asset}->{height} < max_height())) {
+        require MT::Asset;
+        my $a = MT::Asset->load($result->{asset}->{id});
+        $a->remove();
+        $result = {
+            status => ERROR(),
+            message => 'The image you uploaded is too small. Please make sure it is at least ' .
+            max_width() . ' pixels wide and ' . max_height() . ' pixels high.',
+        };
     }
     return _send_json_response($app, $result);
 }
@@ -279,7 +279,7 @@ sub _max_dim {
     my $r = $app->registry('template_sets');
     my $ts = $app->blog->template_set;
     if (my $hdr = $r->{$ts}->{'custom_header'}) {
-	return $hdr->{$dim};
+        return $hdr->{$dim};
     }
     return undef;
 }
@@ -287,6 +287,7 @@ sub _max_dim {
 sub max_width {
     return _max_dim('max_width');
 }
+
 sub max_height {
     return _max_dim('max_height');
 }
@@ -296,13 +297,15 @@ sub _upload_file {
     my (%upload_param) = @_;
 
     if (my $perms = $app->permissions) {
-        return { status => ERROR(), 
-		 message => $app->translate("Permission denied."), 
-	} unless $perms->can_upload;
+        return { status => ERROR(),
+                 message => $app->translate("Permission denied."),
+            } unless $perms->can_upload;
     }
 
-    $app->validate_magic() 
-	or return { status => ERROR(), message => $app->translate("Failed to validate magic.") };
+    $app->validate_magic()
+        or return { status => ERROR(),
+                    message => $app->translate("Failed to validate magic.")
+                };
 
     my $q = $app->param;
     my ($fh, $info) = $app->upload_info('file');
@@ -319,16 +322,16 @@ sub _upload_file {
         extra_path   => $q->param('extra_path'),
         upload_mode  => $app->mode,
     );
-    return { status => ERROR(),
-	     message => $app->translate("Please select a file to upload."),
-    } if !$fh && !$has_overwrite;
+    return {    status => ERROR(),
+                message => $app->translate("Please select a file to upload."),
+            } if !$fh && !$has_overwrite;
     my $basename = $q->param('file') || $q->param('fname');
     $basename =~ s!\\!/!g;    ## Change backslashes to forward slashes
     $basename =~ s!^.*/!!;    ## Get rid of full directory paths
     if ( $basename =~ m!\.\.|\0|\|! ) {
         return { status => ERROR(),
-		 message => $app->translate( "Invalid filename '[_1]'", $basename ),
-	};
+                 message => $app->translate( "Invalid filename '[_1]'", $basename ),
+                };
     }
     if (my $asset_type = $upload_param{require_type}) {
         require MT::Asset;
@@ -362,7 +365,7 @@ sub _upload_file {
         require MT::Blog;
         $blog = MT::Blog->load($blog_id)
             or return { status => ERROR(),
-			message => $app->translate('Can\'t load blog #[_1].', $blog_id) };
+            message => $app->translate('Can\'t load blog #[_1].', $blog_id) };
         $fmgr = $blog->file_mgr;
 
         ## Set up the full path to the local file; this path could start
@@ -376,8 +379,8 @@ sub _upload_file {
             $root_path = $blog->archive_path;
         }
         return { status => ERROR(),
-		 message => $app->translate("Before you can upload a file, you need to publish your blog.") 
-	} unless -d $root_path;
+                 message => $app->translate("Before you can upload a file, you need to publish your blog.")
+            } unless -d $root_path;
         $relative_path = $q->param('extra_path');
         $middle_path = $q->param('middle_path') || '';
 
@@ -389,8 +392,8 @@ sub _upload_file {
         my $path = $root_path;
         if ($relative_path) {
             if ( $relative_path =~ m!\.\.|\0|\|! ) {
-	        return { status => ERROR(),
-			 message => $app->translate("Invalid extra path '[_1]'", $relative_path)
+            return { status => ERROR(),
+                     message => $app->translate("Invalid extra path '[_1]'", $relative_path)
                 };
             }
             $path = File::Spec->catdir( $path, $relative_path );
@@ -401,9 +404,9 @@ sub _upload_file {
             unless ( $fmgr->exists($path) ) {
                 $fmgr->mkpath($path)
                   or return { status => ERROR(),
-			      message => $app->translate("Can't make path '[_1]': [_2]",
-							 $path, $fmgr->errstr )
-                  };
+                              message => $app->translate("Can't make path '[_1]': [_2]",
+                                            $path, $fmgr->errstr )
+                            };
             }
         }
         $relative_url =
@@ -434,35 +437,35 @@ sub _upload_file {
                 }
                 else {
                     return { status => ERROR(),
-			     message => $app->translate( "Invalid temp file name '[_1]'", $tmp ) };
+                 message => $app->translate( "Invalid temp file name '[_1]'", $tmp ) };
                 }
                 my $tmp_dir = $app->config('TempDir');
                 my $tmp_file = File::Spec->catfile( $tmp_dir, $tmp );
                 if ( $q->param('overwrite_yes') ) {
                     $fh = gensym();
                     open $fh, $tmp_file
-                      or return { status => ERROR(), 
-				  message => $app->translate("Error opening '[_1]': [_2]",
-							     $tmp_file, "$!" )
+                      or return { status => ERROR(),
+                  message => $app->translate("Error opening '[_1]': [_2]",
+                                 $tmp_file, "$!" )
                       };
                 }
                 else {
                     if ( -e $tmp_file ) {
                         unlink($tmp_file)
                           or return { status => ERROR(),
-				      message => $app->translate("Error deleting '[_1]': [_2]",
-								 $tmp_file, "$!" )
-		                    };
+                      message => $app->translate("Error deleting '[_1]': [_2]",
+                                 $tmp_file, "$!" )
+                            };
                     }
-		    # TODO - not OK, fix, I think the best thing here is to return a status of "CANCELLED"
+            # TODO - not OK, fix, I think the best thing here is to return a status of "CANCELLED"
                     return start_upload($app);
                 }
             }
             else {
                 eval { require File::Temp };
                 if ($@) {
-                    return { status => ERROR(), 
-			     message => $app->translate(
+                    return { status => ERROR(),
+                 message => $app->translate(
                             "File with name '[_1]' already exists. (Install "
                               . "File::Temp if you'd like to be able to overwrite "
                               . "existing uploaded files.)",
@@ -479,7 +482,7 @@ sub _upload_file {
                 };
                 if ($@) {    #!$tmp_fh
                     return { status => ERROR(),
-			     message => $app->errtrans(
+                 message => $app->errtrans(
                         "Error creating temporary file; please check your TempDir "
                           . "setting in your coniguration file (currently '[_1]') "
                           . "this location should be writable.",
@@ -490,10 +493,10 @@ sub _upload_file {
                         )
                     )};
                 }
-		require MT::CMS::Asset;
+                require MT::CMS::Asset;
                 defined( MT::CMS::Asset::_write_upload( $fh, $tmp_fh ) )
                   or return { status => ERROR(),
-			      message => $app->translate(
+                  message => $app->translate(
                         "File with name '[_1]' already exists; Tried to write "
                           . "to tempfile, but open failed: [_2]",
                         $basename,
@@ -502,14 +505,14 @@ sub _upload_file {
                   };
                 close $tmp_fh;
                 my ( $vol, $path, $tmp ) = File::Spec->splitpath($tmp_file);
-		my $base = File::Basename::basename($basename);
+                my $base = File::Basename::basename($basename);
                 return { status       => OVERWRITE(),
-			 temp         => $tmp,
-			 extra_path   => $relative_path_save,
-			 site_path    => scalar $q->param('site_path'),
-			 middle_path  => $middle_path,
-			 fname        => $base,
-		};
+                         temp         => $tmp,
+                         extra_path   => $relative_path_save,
+                         site_path    => scalar $q->param('site_path'),
+                         middle_path  => $middle_path,
+                         fname        => $base,
+                    };
             }
         }
     }
@@ -526,7 +529,7 @@ sub _upload_file {
             $fmgr->mkpath( $param{support_path} );
             unless ( $fmgr->exists( $param{support_path} ) ) {
                 return { status => ERROR(),
-			 message => $app->translate(
+             message => $app->translate(
                     "Could not create upload path '[_1]': [_2]",
                         $param{support_path}, $fmgr->errstr
                 ) };
@@ -561,7 +564,7 @@ sub _upload_file {
     );
 
     return { status => ERROR(),
-	     message => MT::Image->errstr }
+             message => MT::Image->errstr }
         unless $write_file;
 
     ## File does not exist, or else we have confirmed that we can overwrite.
@@ -569,10 +572,10 @@ sub _upload_file {
     my $old   = umask($umask);
     defined( my $bytes = $write_file->() )
       or return { status => ERROR(),
-		  message => $app->translate(
-		      "Error writing upload to '[_1]': [_2]", $local_file,
-		      $fmgr->errstr
-		      )
+                  message => $app->translate(
+                            "Error writing upload to '[_1]': [_2]", $local_file,
+                            $fmgr->errstr
+              )
       };
     umask($old);
 
@@ -588,12 +591,12 @@ sub _upload_file {
         }
         else {
             return { status => ERROR(),
-		     message => $app->translate( "Invalid temp file name '[_1]'", $tmp ) };
+             message => $app->translate( "Invalid temp file name '[_1]'", $tmp ) };
         }
         my $tmp_file = File::Spec->catfile( $app->config('TempDir'), $tmp );
         unlink($tmp_file)
-	    or return { status => ERROR(),
-			message => $app->translate( "Error deleting '[_1]': [_2]", $tmp_file, "$!" ) };
+        or return { status => ERROR(),
+            message => $app->translate( "Error deleting '[_1]': [_2]", $tmp_file, "$!" ) };
     }
 
     ## We are going to use $relative_path as the filename and as the url passed
@@ -617,17 +620,11 @@ sub _upload_file {
     require MT::Asset;
     my $asset_pkg = MT::Asset->handler_for_file($local_basename);
     my $is_image  = defined($w)
-      && defined($h)
-      && $asset_pkg->isa('MT::Asset::Image');
-    my $asset;
-    if (
-        !(
-            $asset = $asset_pkg->load(
-                { file_path => $asset_file, blog_id => $blog_id }
-            )
-        )
-      )
-    {
+                 && defined($h)
+                 && $asset_pkg->isa('MT::Asset::Image');
+    my $asset =   $asset_pkg->load({ file_path => $asset_file,
+                                     blog_id => $blog_id });
+    if ( ! $asset ) {
         $asset = $asset_pkg->new();
         $asset->file_path($asset_file);
         $asset->file_name($local_basename);
@@ -705,13 +702,13 @@ sub _upload_file {
     }
 
     return { status => SUCCESS(),
-	     asset => {
-		 url => $asset->url,
-		 id => $asset->id,
-		 width => $asset->image_width,
-		 height => $asset->image_height,
-	     },
-	     bytes => $bytes,
+         asset => {
+         url => $asset->url,
+         id => $asset->id,
+         width => $asset->image_width,
+         height => $asset->image_height,
+         },
+         bytes => $bytes,
     };
 }
 
