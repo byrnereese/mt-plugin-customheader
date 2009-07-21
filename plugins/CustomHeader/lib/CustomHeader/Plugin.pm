@@ -115,7 +115,7 @@ sub custom_header_crop {
     $asset_cropped->parent( $asset->id );
     $asset_cropped->save;
 
-    custom_header_id($asset_cropped->id);
+    custom_header_id($blog, $asset_cropped->id);
 
     require MT::Image;
     my $img = MT::Image->new( Filename => $asset->file_path )
@@ -190,9 +190,20 @@ sub _crop {
 }
 
 sub custom_header_id {
-    my $app = MT->instance;
-    my $blog = $app->blog if $app and $app->can('blog');
-    return unless $blog;
+    my $blog = shift;
+
+    my $app;
+    if ( !$blog ) {
+        $app = MT->instance;
+        $blog = $app->blog if $app and $app->can('blog');
+        if ( !$blog ) {
+            my $msg = 'No blog in custom_header_id with app '.$app."\n";
+            Carp::confess($msg);
+            die;            
+        }
+    }
+    # return unless $blog;
+
     require MT::PluginData;
     my $key = 'CustomHeader:' . $blog->id;
     my $data;
@@ -236,7 +247,7 @@ sub custom_header_upload {
 
 sub custom_header_reset {
     my $app = shift;
-    custom_header_id(0);
+    custom_header_id($app->blog, 0);
     return _send_json_response($app, { status => SUCCESS() });
 }
 
@@ -252,14 +263,14 @@ sub tag_asset_parent {
 
 sub tag_has_header {
     my ($ctx, $args, $cond) = @_;
-    my $id = custom_header_id();
+    my $id = custom_header_id( $ctx->stash('blog') );
     return MT::Asset->exist( { id => $id } );
 }
 
 sub tag_custom_header {
     my ($ctx, $args, $cond) = @_;
     require MT::Asset::Image;
-    my $id = custom_header_id();
+    my $id = custom_header_id( $ctx->stash('blog') );
     return undef if ($id eq '');
     my $a = MT::Asset::Image->load($id);
     local $ctx->{__stash}->{asset} = $a;
@@ -268,29 +279,34 @@ sub tag_custom_header {
 }
 sub tag_custom_header_width {
     my ($ctx, $args, $cond) = @_;
-    return max_width();
+    return max_width( $ctx->stash('blog') );
 }
 sub tag_custom_header_height {
     my ($ctx, $args, $cond) = @_;
-    return max_height();
+    return max_height( $ctx->stash('blog') );
 }
 sub _max_dim {
-    my ($dim) = @_;
+    my ($args) = @_;
     my $app = MT->instance;
-    my $r = $app->registry('template_sets');
-    my $ts = $app->blog->template_set;
+    my $blog = ref $args->{blog} ? $args->{blog}
+             : $app->can('blog') ? $app->blog
+                                 : undef;
+    defined $blog or Carp::confess('CustomHeader::Plugin::_max_dim could not '
+                                  .'find blog from environment. ');
+    my $r  = $app->registry('template_sets');
+    my $ts = $blog->template_set;
     if (my $hdr = $r->{$ts}->{'custom_header'}) {
-        return $hdr->{$dim};
+        return $hdr->{$args->{dim}};
     }
     return undef;
 }
 
 sub max_width {
-    return _max_dim('max_width');
+    return _max_dim({ blog => $_[0], dim => 'max_width' });
 }
 
 sub max_height {
-    return _max_dim('max_height');
+    return _max_dim({ blog => $_[0], dim => 'max_height' });
 }
 
 sub _upload_file {
