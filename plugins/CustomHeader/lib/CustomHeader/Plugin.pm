@@ -190,7 +190,8 @@ sub _crop {
 }
 
 sub custom_header_id {
-    my $blog = MT->instance()->blog;
+    my $app = MT->instance;
+    my $blog = $app->blog if $app and $app->can('blog');
     return unless $blog;
     require MT::PluginData;
     my $key = 'CustomHeader:' . $blog->id;
