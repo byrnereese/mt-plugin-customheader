@@ -18,23 +18,20 @@ sub plugin {
     return MT->component('CustomHeader');
 }
 
-sub init_request {
-    my $cb = shift;
-    my $plugin = $cb->plugin;
-    my ($app) = @_;
-    return if $app->id ne 'cms';
-    if ($app->blog) {
-        my $r = $app->registry('template_sets');
-        my $ts = $app->blog->template_set;
-	if (my $hdr = $r->{$ts}->{'custom_header'}) {
-	    $plugin->{'registry'}->{'applications'}->{'cms'}->{'menus'}->{'design:header'} = { 
-		label => 'Custom Header',
-		order => 600,
-		mode => 'custom_header',
-	    };
-	}
-    }
-    return 1;
+sub uses_custom_header {
+    my $blog = MT->instance->blog;
+    return 0 if !$blog;
+
+    # If the user has forcibly enabled custom header, then return true.
+    #return 1 if plugin()->get_config_value('force_enable_custom_header','blog:'.$blog->id);
+ 
+    # If the user is utilizing a template set for which custom css has been enabled
+    # for an index template, return true.
+    my $ts = MT->instance->blog->template_set;
+    my $app = MT::App->instance;
+    return 1 if $ts && defined($app->registry('template_sets')->{$ts}->{'custom_header'});
+    return 0;
+
 }
 
 sub custom_header {
