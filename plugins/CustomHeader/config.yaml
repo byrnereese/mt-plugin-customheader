@@ -4,7 +4,7 @@ name: Custom Header
 description: This plugin allows users to easily customize and maintain a header for their blog - provided that the theme they are using supports it.
 author_name: Byrne Reese
 author_link: http://www.majordojo.com/
-version: 1.0b1
+version: 1.0
 
 tags:
   function:
@@ -17,11 +17,16 @@ tags:
 
 applications:
   cms:
+    menus:
+      design:header:
+        label: 'Custom Header'
+        order: 600
+        mode: 'custom_header'
+        view: 'blog'
+        condition: $CustomHeader::CustomHeader::Plugin::uses_custom_header
     methods:
       custom_header: $CustomHeader::CustomHeader::Plugin::custom_header
       custom_header_upload: $CustomHeader::CustomHeader::Plugin::custom_header_upload
       custom_header_crop: $CustomHeader::CustomHeader::Plugin::custom_header_crop
       custom_header_reset: $CustomHeader::CustomHeader::Plugin::custom_header_reset
 
-callbacks:
-  init_request: $CustomHeader::CustomHeader::Plugin::init_request
