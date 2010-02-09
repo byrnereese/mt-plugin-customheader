@@ -19,25 +19,25 @@ sub plugin {
 }
 
 sub uses_custom_header {
-    my $blog = MT->instance->blog;
-    return 0 if !$blog;
+    my $app = MT::App->instance;
+    my $blog = $app->blog;
+    return 0 unless $blog;
 
     # If the user has forcibly enabled custom header, then return true.
     #return 1 if plugin()->get_config_value('force_enable_custom_header','blog:'.$blog->id);
  
     # If the user is utilizing a template set for which custom css has been enabled
     # for an index template, return true.
-    my $ts = MT->instance->blog->template_set;
-    my $app = MT::App->instance;
-    return 1 if $ts && defined($app->registry('template_sets')->{$ts}->{'custom_header'});
+    my $ts = $blog->template_set;
+    return 0 unless $ts;
+    return 1 if defined($app->registry('template_sets')->{$ts}->{'custom_header'});
     return 0;
 
 }
 
 sub custom_header {
     my $app = shift;
-    my $tmpl = plugin()->load_tmpl('custom_header.tmpl');
-    return $app->build_page( $tmpl );
+    return $app->load_tmpl( 'custom_header.tmpl' );
 }
 
 sub _crop_filename {
@@ -81,8 +81,7 @@ sub custom_header_crop {
     my $height = $q->param('h');
     my $id     = $q->param('id');
 
-    require MT::Asset;
-    my $asset = MT::Asset->load( $id );
+    my $asset = MT->model('asset')->load( $id );
     my $cropped = _crop_filename( $asset,
                   Width => max_width(),
                   Height => max_height(),
@@ -201,11 +200,10 @@ sub custom_header_id {
     }
     # return unless $blog;
 
-    require MT::PluginData;
     my $key = 'CustomHeader:' . $blog->id;
     my $data;
-    $data = MT::PluginData->load({ plugin => 'CustomHeader',
-                   key    => $key });
+    $data = MT->model('plugindata')->load({ plugin => 'CustomHeader',
+                                            key    => $key });
     if (@_) {
         if ($data && $_[0] == 0) {
             $data->remove or die $data->errstr;
@@ -261,7 +259,7 @@ sub tag_asset_parent {
 sub tag_has_header {
     my ($ctx, $args, $cond) = @_;
     my $id = custom_header_id( $ctx->stash('blog') );
-    return MT::Asset->exist( { id => $id } );
+    return MT->model('asset')->exist( { id => $id } );
 }
 
 sub tag_custom_header {
