@@ -1,7 +1,11 @@
 use ExtUtils::MakeMaker;
 
+my $file = "plugins/CustomHeader/config.yaml";
+my $version = LoadFile($file)->{version} ||
+    die "No version found in $file";
+
 WriteMakefile(
     NAME            => 'Custom Header',
-    VERSION         => '1.0',
+    VERSION         => $version,
     DISTNAME        => 'CustomHeader',
 );

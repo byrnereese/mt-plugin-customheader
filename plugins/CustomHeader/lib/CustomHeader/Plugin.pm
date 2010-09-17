@@ -216,7 +216,9 @@ sub custom_header_id {
         }
     }
     return unless $data;
-    return $data->data->{'custom_header'};
+    my $id = $data->data->{'custom_header'};
+    return $id if ($id && MT->model('asset')->exist( $id ));
+    return undef;
 }
 
 sub custom_header_upload {

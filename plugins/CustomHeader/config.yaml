@@ -4,7 +4,7 @@ name: Custom Header
 description: This plugin allows users to easily customize and maintain a header for their blog - provided that the theme they are using supports it.
 author_name: Byrne Reese
 author_link: http://www.majordojo.com/
-version: 1.0
+version: 1.0.1
 
 tags:
   function:
